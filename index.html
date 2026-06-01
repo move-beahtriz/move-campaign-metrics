@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>2026 Campaign Metrics — Move Supply Chain</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f7f6f3;
+    --surface:#ffffff;
+    --border:#e4e2dc;
+    --text:#1a1917;
+    --muted:#6b6860;
+    --accent:#1a3a5c;
+    --accent2:#2d6a4f;
+    --accent3:#c45c2a;
+    --accent4:#7b4ea6;
+    --accent5:#b5860d;
+    --radius:10px;
+  }
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+  header{background:var(--accent);color:#fff;padding:2rem 2.5rem 1.5rem;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+  header h1{font-size:1.5rem;font-weight:600;letter-spacing:-.02em}
+  header p{font-size:.8rem;opacity:.65;margin-top:.2rem;font-family:'DM Mono',monospace}
+  .status-pill{font-size:.7rem;font-family:'DM Mono',monospace;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:4px 12px;border-radius:20px;letter-spacing:.05em}
+  main{max-width:1200px;margin:0 auto;padding:2rem 1.5rem}
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:2rem}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem}
+  .stat .lbl{font-size:.68rem;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem}
+  .stat .val{font-size:1.6rem;font-weight:600;letter-spacing:-.03em}
+  .stat .sub{font-size:.72rem;color:var(--muted);margin-top:.2rem}
+  .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.75rem}
+  .tab{padding:.65rem 1.2rem;font-size:.82rem;font-weight:500;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .view{display:none}.view.active{display:block}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.25rem}
+  .card-title{font-size:.75rem;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:1rem}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem}
+  select{font-family:'DM Sans',sans-serif;font-size:.82rem;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer;outline:none}
+  select:focus{border-color:var(--accent)}
+  .chart-wrap{position:relative;width:100%}
+  table{width:100%;border-collapse:collapse;font-size:.8rem}
+  th{text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);font-size:.68rem;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500;white-space:nowrap}
+  td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:#faf9f7}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.7rem;font-family:'DM Mono',monospace;font-weight:500}
+  .b-green{background:#d8f0e2;color:#1a5c35}
+  .b-amber{background:#fef3d0;color:#7a5200}
+  .b-red{background:#fde8e8;color:#8b1a1a}
+  .b-blue{background:#ddeeff;color:#1a3a6b}
+  .b-gray{background:#efefef;color:#555}
+  .loading{text-align:center;padding:3rem;color:var(--muted);font-size:.85rem;font-family:'DM Mono',monospace}
+  .error{text-align:center;padding:2rem;color:#c45c2a;font-size:.82rem}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+  @media(max-width:700px){.two-col{grid-template-columns:1fr}}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:1rem}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted)}
+  .legend-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+  .refresh-btn{margin-left:auto;font-family:'DM Sans',sans-serif;font-size:.78rem;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .refresh-btn:hover{background:var(--bg)}
+  .campaign-tag{font-size:.7rem;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>2026 Campaign Metrics</h1>
+    <p>Move Supply Chain · Live from Google Sheets</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span class="status-pill" id="last-updated">Loading…</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<main>
+  <div class="summary-grid" id="summary-cards">
+    <div class="stat"><div class="lbl">Status</div><div class="val" style="font-size:1rem;padding-top:.3rem">Loading data…</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+    <div class="tab" onclick="switchTab('by-email',this)">By email</div>
+    <div class="tab" onclick="switchTab('by-campaign',this)">By campaign</div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="view-overview" class="view active">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Open rate by email</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="chart-open" role="img" aria-label="Open rate by email">Open rates per email.</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Click rate by email</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="chart-click" role="img" aria-label="Click rate by email">Click rates per email.</canvas></div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Reply rate by email</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="chart-reply" role="img" aria-label="Reply rate by email">Reply rates per email.</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Sent to by email</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="chart-sent" role="img" aria-label="Sent count by email">Sent counts per email.</canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BY EMAIL -->
+  <div id="view-by-email" class="view">
+    <div class="controls">
+      <select id="filter-campaign" onchange="renderEmailView()">
+        <option value="all">All campaigns</option>
+      </select>
+      <select id="filter-metric" onchange="renderEmailView()">
+        <option value="openPct">Open rate %</option>
+        <option value="clickPct">Click rate %</option>
+        <option value="replyPct">Reply rate %</option>
+        <option value="unsubPct">Unsub rate %</option>
+        <option value="sentTo">Sent to</option>
+        <option value="enrollments">Enrollments</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-title" id="email-chart-title">Open rate % by email</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="chart-by-email" role="img" aria-label="Selected metric by email">Email metrics.</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Email detail</div>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Email</th><th>Campaign</th><th>Date sent</th><th>Sent to</th><th>Enrollments</th>
+          <th>Open</th><th>Open %</th><th>Click</th><th>Click %</th>
+          <th>Reply</th><th>Reply %</th><th>Unsub</th><th>Unsub %</th>
+        </tr></thead>
+        <tbody id="email-tbody"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- BY CAMPAIGN -->
+  <div id="view-by-campaign" class="view">
+    <div class="controls">
+      <select id="filter-camp-metric" onchange="renderCampaignView()">
+        <option value="avgOpenPct">Avg open rate %</option>
+        <option value="avgClickPct">Avg click rate %</option>
+        <option value="avgReplyPct">Avg reply rate %</option>
+        <option value="totalSent">Total sent</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-title" id="camp-chart-title">Avg open rate % by campaign</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chart-by-campaign" role="img" aria-label="Selected metric by campaign">Campaign metrics.</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Campaign summary</div>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Campaign</th><th>Emails</th><th>Total sent</th><th>Total enroll.</th>
+          <th>Avg open %</th><th>Avg click %</th><th>Avg reply %</th><th>Avg unsub %</th>
+        </tr></thead>
+        <tbody id="campaign-tbody"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5_myiuk9B-VrKtr_DJAdqo_lUYmSD1_bSMxrvM2XRS7lcRwamQA0KuHz5MdQeG8Sedf4v8WEog-0n/pub?gid=0&single=true&output=csv';
+
+let allData = [];
+let charts = {};
+
+const COLORS = ['#1a3a5c','#2d6a4f','#c45c2a','#7b4ea6','#b5860d','#1a6b6b','#8b3a3a'];
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line => {
+    const vals = [];
+    let cur = '', inQ = false;
+    for (let c of line) {
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    vals.push(cur.trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = vals[i] || '');
+    return obj;
+  }).filter(r => r[headers[2]] && r[headers[2]].trim() !== '');
+}
+
+function pct(str) {
+  if (!str) return 0;
+  return parseFloat(str.toString().replace('%','').trim()) || 0;
+}
+function num(str) {
+  if (!str) return 0;
+  return parseInt(str.toString().replace(/,/g,'').trim()) || 0;
+}
+
+function normalize(raw) {
+  return raw.map(r => {
+    const keys = Object.keys(r);
+    return {
+      campaign: r[keys[0]] || '',
+      dateSent: r[keys[1]] || '',
+      email: r[keys[2]] || '',
+      sentTo: num(r[keys[3]]),
+      enrollments: num(r[keys[4]]),
+      openCount: num(r[keys[5]]),
+      openPct: pct(r[keys[6]]),
+      clickCount: num(r[keys[7]]),
+      clickPct: pct(r[keys[8]]),
+      replyCount: num(r[keys[9]]),
+      replyPct: pct(r[keys[10]]),
+      unsubCount: num(r[keys[11]]),
+      unsubPct: pct(r[keys[12]])
+    };
+  });
+}
+
+async function loadData() {
+  document.getElementById('last-updated').textContent = 'Refreshing…';
+  try {
+    const resp = await fetch(CSV_URL + '&t=' + Date.now());
+    const text = await resp.text();
+    const raw = parseCSV(text);
+    allData = normalize(raw);
+    renderAll();
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    document.getElementById('last-updated').textContent = 'Error loading data';
+    console.error(e);
+  }
+}
+
+function avg(arr, key) {
+  if (!arr.length) return 0;
+  return arr.reduce((s, d) => s + d[key], 0) / arr.length;
+}
+
+function getCampaigns() {
+  const seen = new Set(), out = [];
+  allData.forEach(d => { if (d.campaign && !seen.has(d.campaign)) { seen.add(d.campaign); out.push(d.campaign); }});
+  return out;
+}
+
+function renderAll() {
+  renderSummary();
+  renderOverview();
+  renderEmailView();
+  renderCampaignView();
+  populateCampaignFilter();
+}
+
+function renderSummary() {
+  const d = allData;
+  const totalSent = d.reduce((s,r)=>s+r.sentTo,0);
+  const avgOpen = avg(d,'openPct').toFixed(1);
+  const avgClick = avg(d,'clickPct').toFixed(1);
+  const avgReply = avg(d,'replyPct').toFixed(1);
+  const camps = getCampaigns().length;
+  document.getElementById('summary-cards').innerHTML = `
+    <div class="stat"><div class="lbl">Total sent</div><div class="val">${totalSent.toLocaleString()}</div><div class="sub">${d.length} emails tracked</div></div>
+    <div class="stat"><div class="lbl">Avg open rate</div><div class="val">${avgOpen}%</div></div>
+    <div class="stat"><div class="lbl">Avg click rate</div><div class="val">${avgClick}%</div></div>
+    <div class="stat"><div class="lbl">Avg reply rate</div><div class="val">${avgReply}%</div></div>
+    <div class="stat"><div class="lbl">Campaigns</div><div class="val">${camps}</div></div>
+  `;
+}
+
+function makeBar(id, labels, datasets, yLabel, height) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  ctx.parentElement.style.height = (height || 280) + 'px';
+  charts[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: datasets.length > 1, labels: { font: { family: 'DM Sans', size: 11 }, boxWidth: 10, boxHeight: 10, padding: 16 }}},
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { family: 'DM Mono', size: 10 }, callback: v => yLabel === 'count' ? v.toLocaleString() : v + '%' }},
+        x: { grid: { display: false }, ticks: { font: { family: 'DM Mono', size: 10 }, maxRotation: 35, autoSkip: false }}
+      }
+    }
+  });
+}
+
+function renderOverview() {
+  const labels = allData.map(d => d.email);
+  makeBar('chart-open', labels, [{ label: 'Open %', data: allData.map(d=>d.openPct), backgroundColor: '#1a3a5c99', borderColor: '#1a3a5c', borderWidth: 1, borderRadius: 3 }], '%');
+  makeBar('chart-click', labels, [{ label: 'Click %', data: allData.map(d=>d.clickPct), backgroundColor: '#2d6a4f99', borderColor: '#2d6a4f', borderWidth: 1, borderRadius: 3 }], '%');
+  makeBar('chart-reply', labels, [{ label: 'Reply %', data: allData.map(d=>d.replyPct), backgroundColor: '#c45c2a99', borderColor: '#c45c2a', borderWidth: 1, borderRadius: 3 }], '%');
+  makeBar('chart-sent', labels, [{ label: 'Sent to', data: allData.map(d=>d.sentTo), backgroundColor: '#7b4ea699', borderColor: '#7b4ea6', borderWidth: 1, borderRadius: 3 }], 'count');
+}
+
+function populateCampaignFilter() {
+  const sel = document.getElementById('filter-campaign');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">All campaigns</option>' + getCampaigns().map(c => `<option value="${c}"${cur===c?' selected':''}>${c}</option>`).join('');
+}
+
+function metricLabel(m) {
+  return { openPct:'Open rate %', clickPct:'Click rate %', replyPct:'Reply rate %', unsubPct:'Unsub rate %', sentTo:'Sent to', enrollments:'Enrollments' }[m] || m;
+}
+function campMetricLabel(m) {
+  return { avgOpenPct:'Avg open rate %', avgClickPct:'Avg click rate %', avgReplyPct:'Avg reply rate %', totalSent:'Total sent' }[m] || m;
+}
+
+function renderEmailView() {
+  const camp = document.getElementById('filter-campaign').value;
+  const metric = document.getElementById('filter-metric').value;
+  const rows = camp === 'all' ? allData : allData.filter(d => d.campaign === camp);
+  const isCount = ['sentTo','enrollments'].includes(metric);
+
+  document.getElementById('email-chart-title').textContent = metricLabel(metric) + ' by email';
+
+  const camps = getCampaigns();
+  const colorMap = {};
+  camps.forEach((c,i) => colorMap[c] = COLORS[i % COLORS.length]);
+
+  makeBar('chart-by-email',
+    rows.map(d => d.email),
+    [{ label: metricLabel(metric), data: rows.map(d => d[metric]),
+       backgroundColor: rows.map(d => (colorMap[d.campaign]||'#1a3a5c') + '99'),
+       borderColor: rows.map(d => colorMap[d.campaign]||'#1a3a5c'),
+       borderWidth: 1, borderRadius: 3 }],
+    isCount ? 'count' : '%', 300);
+
+  function rateBadge(v) {
+    if (v >= 30) return `<span class="badge b-green">${v.toFixed(2)}%</span>`;
+    if (v >= 15) return `<span class="badge b-amber">${v.toFixed(2)}%</span>`;
+    return `<span class="badge b-red">${v.toFixed(2)}%</span>`;
+  }
+
+  document.getElementById('email-tbody').innerHTML = rows.map(d => `<tr>
+    <td><strong>${d.email}</strong></td>
+    <td><span class="campaign-tag">${d.campaign}</span></td>
+    <td style="color:#6b6860;font-family:'DM Mono',monospace;font-size:.72rem">${d.dateSent}</td>
+    <td>${d.sentTo.toLocaleString()}</td>
+    <td>${d.enrollments.toLocaleString()}</td>
+    <td>${d.openCount}</td><td>${rateBadge(d.openPct)}</td>
+    <td>${d.clickCount}</td><td>${d.clickPct.toFixed(2)}%</td>
+    <td>${d.replyCount}</td><td>${d.replyPct.toFixed(2)}%</td>
+    <td>${d.unsubCount}</td><td>${d.unsubPct.toFixed(2)}%</td>
+  </tr>`).join('');
+}
+
+function renderCampaignView() {
+  const metric = document.getElementById('filter-camp-metric').value;
+  const camps = getCampaigns();
+  const isCount = metric === 'totalSent';
+
+  const campData = camps.map((c,i) => {
+    const rows = allData.filter(d => d.campaign === c);
+    return {
+      campaign: c,
+      count: rows.length,
+      totalSent: rows.reduce((s,d)=>s+d.sentTo,0),
+      totalEnroll: rows.reduce((s,d)=>s+d.enrollments,0),
+      avgOpenPct: avg(rows,'openPct'),
+      avgClickPct: avg(rows,'clickPct'),
+      avgReplyPct: avg(rows,'replyPct'),
+      avgUnsubPct: avg(rows,'unsubPct'),
+      color: COLORS[i % COLORS.length]
+    };
+  });
+
+  document.getElementById('camp-chart-title').textContent = campMetricLabel(metric) + ' by campaign';
+
+  makeBar('chart-by-campaign',
+    campData.map(d => d.campaign),
+    [{ label: campMetricLabel(metric), data: campData.map(d => isCount ? d[metric] : +d[metric].toFixed(2)),
+       backgroundColor: campData.map(d => d.color + '99'),
+       borderColor: campData.map(d => d.color),
+       borderWidth: 1, borderRadius: 3 }],
+    isCount ? 'count' : '%', 260);
+
+  document.getElementById('campaign-tbody').innerHTML = campData.map(d => `<tr>
+    <td><strong>${d.campaign}</strong></td>
+    <td>${d.count}</td>
+    <td>${d.totalSent.toLocaleString()}</td>
+    <td>${d.totalEnroll.toLocaleString()}</td>
+    <td><span class="badge ${d.avgOpenPct>=30?'b-green':d.avgOpenPct>=15?'b-amber':'b-red'}">${d.avgOpenPct.toFixed(1)}%</span></td>
+    <td>${d.avgClickPct.toFixed(2)}%</td>
+    <td>${d.avgReplyPct.toFixed(2)}%</td>
+    <td>${d.avgUnsubPct.toFixed(2)}%</td>
+  </tr>`).join('');
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+loadData();
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
